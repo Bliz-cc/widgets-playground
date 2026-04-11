@@ -1,6 +1,9 @@
 lockfileVersion: '6.0'
 
 dependencies:
+  '@blizcc/ui':
+    specifier: ^0.1.37
+    version: 0.1.37(framer-motion@10.18.0)(react-dom@18.3.1)(react@18.3.1)
   '@tabler/icons-react':
     specifier: ^3.41.1
     version: 3.41.1(react@18.3.1)
@@ -239,6 +242,23 @@ packages:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
     dev: true
+
+  /@blizcc/ui@0.1.37(framer-motion@10.18.0)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-a8dqa3eJ1FbbWx5+kvxvcZfhgooFxLP9LS1jw2pzOAb6gLmCYpLHJohGC+kFbk+5IfpuX58GqH+dfRFErMMD5g==}
+    peerDependencies:
+      framer-motion: 10.18.0
+      react: 18.3.1
+      react-dom: 18.3.1
+    dependencies:
+      '@tabler/icons-react': 3.41.1(react@18.3.1)
+      clsx: 2.1.1
+      dayjs: 1.11.13
+      framer-motion: 10.18.0(react-dom@18.3.1)(react@18.3.1)
+      libphonenumber-js: 1.12.41
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      swr: 2.3.6(react@18.3.1)
+    dev: false
 
   /@emnapi/core@1.9.2:
     resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
