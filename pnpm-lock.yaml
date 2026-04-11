@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@blizcc/ui':
-    specifier: ^0.1.37
-    version: 0.1.37(framer-motion@10.18.0)(react-dom@18.3.1)(react@18.3.1)
+    specifier: ^0.1.39
+    version: 0.1.39(framer-motion@10.18.0)(react-dom@18.3.1)(react@18.3.1)
   '@tabler/icons-react':
     specifier: ^3.41.1
     version: 3.41.1(react@18.3.1)
@@ -243,8 +243,8 @@ packages:
       '@babel/helper-validator-identifier': 7.28.5
     dev: true
 
-  /@blizcc/ui@0.1.37(framer-motion@10.18.0)(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-a8dqa3eJ1FbbWx5+kvxvcZfhgooFxLP9LS1jw2pzOAb6gLmCYpLHJohGC+kFbk+5IfpuX58GqH+dfRFErMMD5g==}
+  /@blizcc/ui@0.1.39(framer-motion@10.18.0)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-2ASY6epBjTjNPZmJ3fBtjxStLUsIRPdeJOORiFIrLad394y4imfRx+uIyvIUeV6BJ+7oknW7Z6MfaLdki0xQSw==}
     peerDependencies:
       framer-motion: 10.18.0
       react: 18.3.1

@@ -5,6 +5,7 @@ export default {
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
+    './node_modules/@blizcc/ui/dist/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
