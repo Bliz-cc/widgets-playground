@@ -103,7 +103,7 @@ const ENGINE_RULES = {
 // =============================================================
 // WIDGET TEMPLATE COMPONENT
 // =============================================================
-const WidgetTemplate: FC<WidgetView> = ({
+const Mbtes: FC<WidgetView> = ({
   widget_id,
   link_id,
   theme_primary,
@@ -447,4 +447,4 @@ const WidgetTemplate: FC<WidgetView> = ({
   );
 };
 
-export default WidgetTemplate;
+export default Mbtes;

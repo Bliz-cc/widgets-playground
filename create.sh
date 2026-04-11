@@ -22,8 +22,9 @@ fi
 
 # Define path
 DIR="./src/widgets/$UNIQUE_KEY"
-FILE="$DIR/content.tsx"
-TEMPLATE="./src/template.tsx"
+FILE_CONTENT="$DIR/content.tsx"
+FILE_SCHEMA="$DIR/schema.ts"
+TEMPLATE_CONTENT="./src/template.tsx"
 
 # Create directory if it doesn't exist
 mkdir -p "$DIR"
@@ -32,17 +33,64 @@ mkdir -p "$DIR"
 # e.g. redirect-minimal-pkey -> RedirectMinimalPkey
 PASCAL_KEY=$(echo "$UNIQUE_KEY" | perl -pe 's/(^|-)(\w)/\U$2/g')
 
-if [ -f "$TEMPLATE" ]; then
+# 1. Create schema.ts
+cat <<EOF > "$FILE_SCHEMA"
+import {
+  COLLECTION_METHOD_ENUM,
+  COLLECTION_METHOD_PLACEMENT_ENUM,
+  CONTENT_LANGUAGE_ENUM,
+  type WidgetView,
+} from "@blizcc/ui";
+
+export const SCHEMA: WidgetView = {
+  // ---- Identity ----
+  widget_id: "$UNIQUE_KEY",
+  link_id: "mock_link",
+  slug: "try-your-luck",
+
+  // ---- Theme ----
+  theme_primary: "#7c3aed",
+  theme_secondary: "#4b5563",
+  theme_accent: "#f472b6",
+  theme_line_height: "1.4",
+
+  // ---- Content ----
+  text1: "Play to Win",                    // Heading
+  text2: "Try your luck and win prizes!",  // Sub-heading
+  text3: "Play Now",                        // CTA Button
+  text4: "Congratulations!",                // Win Modal Title
+  text5: "Tap to play",                     // Instruction
+  text7: "Ready to play?",                  // Overlay Heading
+  text8: "Your phone number",               // Input Label
+  text10: "Thanks for submitting!",         // Post-submit
+  text11: "We'll send your prize to",       // Success Desc
+  text14: "Enter a valid phone number",     // Validation Error
+
+  // ---- Data & Config ----
+  promos: [],
+  content_language: CONTENT_LANGUAGE_ENUM.ENGLISH,
+  collection_method: COLLECTION_METHOD_ENUM.PHONE,
+  collection_method_placement: COLLECTION_METHOD_PLACEMENT_ENUM.AFTER_PLAY,
+  preview_mode: false,
+  content_expired: false,
+  short_url: "",
+  original_url: "",
+};
+EOF
+
+# 2. Create content.tsx
+if [ -f "$TEMPLATE_CONTENT" ]; then
   # Read template and replace placeholders
   # 1. Replace WidgetTemplate with PascalCase key
-  # 2. Replace widget_id: 'template_v1' with the actual key
-  sed "s/WidgetTemplate/$PASCAL_KEY/g; s/widget_id: 'template_v1'/widget_id: '$UNIQUE_KEY'/g" "$TEMPLATE" > "$FILE"
-  echo "✓ Created $FILE (cloned from $TEMPLATE)"
+  sed "s/WidgetTemplate/$PASCAL_KEY/g" "$TEMPLATE_CONTENT" > "$FILE_CONTENT"
+  echo "✓ Created $FILE_CONTENT (cloned from $TEMPLATE_CONTENT)"
+  echo "✓ Created $FILE_SCHEMA"
 else
-  echo "Warning: $TEMPLATE not found. Falling back to basic template."
-  # Fallback template
-  cat <<EOF > "$FILE"
+  echo "Warning: $TEMPLATE_CONTENT not found. Falling back to basic content.tsx."
+  # Fallback content
+  cat <<EOF > "$FILE_CONTENT"
 import { type FC } from 'react';
+import { SCHEMA } from './schema';
 
 export const $PASCAL_KEY: FC = () => {
   return (
@@ -55,5 +103,6 @@ export const $PASCAL_KEY: FC = () => {
 
 export default $PASCAL_KEY;
 EOF
-  echo "✓ Created $FILE (fallback)"
+  echo "✓ Created $FILE_CONTENT (fallback)"
+  echo "✓ Created $FILE_SCHEMA"
 fi
