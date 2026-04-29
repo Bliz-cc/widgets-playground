@@ -22,6 +22,10 @@ import { SCHEMA as FOOTBALL_SCHEMA } from "./widgets/football-penalty/football-p
 import AnimeMysteryCase from "./widgets/anime-mystery-case/anime-mystery-case-content";
 import { SCHEMA as ANIME_SCHEMA } from "./widgets/anime-mystery-case/anime-mystery-case-schema";
 
+// Discount Catcher & Bundle Builder
+import DiscountCatcherBundle from "./widgets/discount-catcher-bundle/discount-catcher-bundle-content";
+import { SCHEMA as BUNDLE_SCHEMA } from "./widgets/discount-catcher-bundle/discount-catcher-bundle-schema";
+
 import { WidgetPlayground, type WidgetDefinition } from "./components/WidgetPlayground";
 
 const WIDGETS: WidgetDefinition[] = [
@@ -31,6 +35,7 @@ const WIDGETS: WidgetDefinition[] = [
   { id: "mma",       name: "MMA Power Strike",       Component: MmaPowerStrike,       schema: MMA_SCHEMA },
   { id: "football",  name: "Football Penalty Kick",  Component: FootballPenalty,      schema: FOOTBALL_SCHEMA },
   { id: "anime",     name: "Anime Mystery Case",     Component: AnimeMysteryCase,     schema: ANIME_SCHEMA },
+  { id: "bundle",    name: "Discount Catcher & Bundle Builder", Component: DiscountCatcherBundle, schema: BUNDLE_SCHEMA },
 ];
 
 const App = () => <WidgetPlayground widgets={WIDGETS} />;
