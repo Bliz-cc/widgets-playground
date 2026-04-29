@@ -74,21 +74,21 @@ export const WidgetPlayground: FC<WidgetPlaygroundProps> = ({ widgets }) => {
           </p>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
-          {widgets.map((w) => (
-            <button
-              key={w.id}
-              onClick={() => setActiveWidgetId(w.id)}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${
-                activeWidgetId === w.id
-                  ? "bg-purple-600 text-white shadow-lg"
-                  : "text-white/40 hover:text-white"
-              }`}
-            >
-              {w.name}
-            </button>
-          ))}
+        {/* Select Dropdown */}
+        <div className="relative">
+          <select
+            value={activeWidgetId}
+            onChange={(e) => setActiveWidgetId(e.target.value)}
+            className="appearance-none bg-white/5 border border-white/10 rounded-xl px-5 py-3 pr-10 font-bold text-sm text-white/80 focus:outline-none focus:border-purple-500 focus:text-white cursor-pointer transition-all hover:border-white/20"
+          >
+            {widgets.map((w) => (
+              <option key={w.id} value={w.id} className="bg-[#1a1a2e] text-white">
+                {w.name}
+              </option>
+            ))}
+          </select>
+          {/* Chevron */}
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">▼</span>
         </div>
       </div>
 

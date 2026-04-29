@@ -28,8 +28,11 @@ export const SCHEMA: WidgetView = {
   text10: "SUBMIT FLIGHT LOG",         // Post-submit
   text11: "Your loot is being processed.",       // Success Desc
   text14: "SYSTEM MALFUNCTION",     // Validation Error
-  text16: "FLYING...",              // Active state
-  text18: "DISTANCE",                // Metric label
+  // ---- Game Config (marketer-controlled) ----
+  // text16: target altitude number the player must hit to win (±3% window)
+  // e.g. "844.84" means the player must eject between ~820 and ~869
+  text16: "844.84",             // Target altitude — set this per campaign
+  text18: "ALTITUDE",           // Metric label shown above the counter
 
   // ---- Data & Config ----
   promos: [],

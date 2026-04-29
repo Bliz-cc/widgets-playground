@@ -466,19 +466,34 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
   const [terms_accepted, set_terms_accepted] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [gameState, setGameState] = useState<
-    "idle" | "playing" | "ejected" | "crashed" | "too_cold"
+    "idle" | "playing" | "ejected" | "crashed" | "missed"
   >("idle");
-  const [temperature, setTemperature] = useState(0);
+  const [altitude, setAltitude] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Heat rate varies each game: 0.4–1.4 units per tick (50ms) → full heat in ~4–14 sec
-  const heatRateRef = useRef(0.4 + Math.random() * 1.0);
-  // Pulse rate adds random micro-variance to feel organic
-  const tickRef = useRef(0);
+  const speedRef = useRef(0); // units per tick (set fresh each game)
 
-  // Optimal eject zone: 55–80 degrees
-  const OPTIMAL_MIN = 55;
-  const OPTIMAL_MAX = 80;
+  // Target altitude from marketer prop (text16), e.g. "844.84" → 844.84
+  const targetAltitude = useMemo(
+    () => Math.max(10, parseFloat(text16 ?? "500") || 500),
+    [text16],
+  );
+  // Win window: ±3% of target, minimum ±5 units
+  const tolerance = useMemo(
+    () => Math.max(5, targetAltitude * 0.03),
+    [targetAltitude],
+  );
+  const winMin = useMemo(
+    () => targetAltitude - tolerance,
+    [targetAltitude, tolerance],
+  );
+  const winMax = useMemo(
+    () => targetAltitude + tolerance,
+    [targetAltitude, tolerance],
+  );
+  // Progress toward target (0–1), capped at 1
+  const progress = Math.min(1, altitude / (targetAltitude + tolerance));
+  const inWinZone = altitude >= winMin && altitude <= winMax;
 
   usePreviewStateOverride({
     preview_mode,
@@ -493,22 +508,20 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
     if (is_interaction_disabled || is_completed || content_expired) return;
 
     setGameState("playing");
-    setTemperature(0);
-    tickRef.current = 0;
-    // Randomise heat rate each session so players can't memorise timing
-    heatRateRef.current = 0.4 + Math.random() * 1.0;
+    setAltitude(1);
+    // Random speed so players can't memorise timing — full run takes 6–14s
+    // speed = targetAltitude / (ticks in desired duration)
+    const durationTicks = (6000 + Math.random() * 8000) / 50; // ticks @ 50ms
+    speedRef.current = targetAltitude / durationTicks;
     play("playing");
     send_interaction_event(widget_id, selected_index ?? 0, promos);
 
     gameLoopRef.current = setInterval(() => {
-      tickRef.current += 1;
-      // Add organic micro-variance every ~10 ticks
-      const jitter = tickRef.current % 10 === 0 ? (Math.random() - 0.5) * 0.3 : 0;
-      setTemperature((prev) => {
-        const next = Math.min(100, prev + heatRateRef.current + jitter);
-        if (next >= 100) {
+      setAltitude((prev) => {
+        const next = +(prev + speedRef.current).toFixed(2);
+        if (next > winMax) {
           handleCrash();
-          return 100;
+          return next;
         }
         return next;
       });
@@ -519,6 +532,8 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
     content_expired,
     selected_index,
     promos,
+    targetAltitude,
+    winMax,
   ]);
 
   const startGame = useCallback(() => {
@@ -531,21 +546,19 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     stop("playing");
 
-    const t = temperature;
-
-    if (t >= OPTIMAL_MIN && t <= OPTIMAL_MAX) {
-      // ✅ OPTIMAL ZONE — win
+    if (inWinZone) {
+      // ✅ Hit the target window
       play("win");
       setGameState("ejected");
       setShowConfetti(true);
       setTimeout(() => set_is_winning_modal_open(true), 1500);
     } else {
-      // ❌ Too cold or in danger zone without crashing — still a loss
+      // ❌ Ejected but outside the window
       play("crash");
-      setGameState("too_cold");
+      setGameState("missed");
       setTimeout(() => set_is_losing_modal_open(true), 1200);
     }
-  }, [gameState, temperature]);
+  }, [gameState, inWinZone]);
 
   const handleCrash = useCallback(() => {
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
@@ -654,81 +667,116 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
           />
 
           <div className="flex-1 w-full relative flex items-center justify-center overflow-hidden">
-          {/* Temperature Gauge */}
-          {(gameState === "playing" || gameState === "ejected" || gameState === "crashed" || gameState === "too_cold") && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute top-4 left-4 right-4 flex flex-col gap-1"
-            >
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black tracking-[0.25em] text-white/40 uppercase">ENGINE TEMP</span>
-                <span className="text-[9px] font-mono font-bold" style={{
-                  color: temperature < OPTIMAL_MIN ? theme_accent
-                    : temperature <= OPTIMAL_MAX ? "#22c55e"
-                    : "#ef4444"
-                }}>
-                  {temperature < OPTIMAL_MIN ? "TOO COLD"
-                    : temperature <= OPTIMAL_MAX ? "OPTIMAL ZONE"
-                    : "DANGER"}
-                </span>
-              </div>
-
-              {/* Segmented Bar */}
-              <div className="relative w-full h-4 bg-white/5 overflow-hidden flex gap-px">
-                {Array.from({ length: 40 }).map((_, i) => {
-                  const segPct = (i / 40) * 100;
-                  const isLit = segPct <= temperature;
-                  const inOptimal = segPct >= OPTIMAL_MIN && segPct <= OPTIMAL_MAX;
-                  const inDanger  = segPct > OPTIMAL_MAX;
-                  return (
-                    <motion.div
-                      key={i}
-                      className="flex-1 h-full"
-                      animate={isLit ? { opacity: [1, 0.7, 1] } : {}}
-                      transition={{ repeat: Infinity, duration: 0.3, delay: i * 0.01 }}
+            {/* Altitude Display */}
+            {(gameState === "playing" ||
+              gameState === "ejected" ||
+              gameState === "crashed" ||
+              gameState === "missed") && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute top-2 left-2 right-2 flex flex-col gap-2"
+              >
+                {/* Live altitude counter + target */}
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-[8px] font-black tracking-[0.25em] text-white/30 uppercase">
+                      {text18 ?? "ALTITUDE"}
+                    </p>
+                    <motion.p
+                      className="text-4xl font-black italic tabular-nums leading-none"
                       style={{
-                        backgroundColor: isLit
-                          ? inOptimal ? "#22c55e"
-                            : inDanger ? "#ef4444"
-                            : theme_accent
-                          : "transparent",
-                        border: `1px solid ${isLit
-                          ? inOptimal ? "#16a34a"
-                            : inDanger ? "#dc2626"
-                            : `${theme_accent}88`
-                          : "#ffffff11"}`,
+                        color: inWinZone
+                          ? "#22c55e"
+                          : altitude > winMax
+                            ? "#ef4444"
+                            : theme_accent,
+                        textShadow: inWinZone ? "0 0 20px #22c55e" : "none",
                       }}
-                    />
-                  );
-                })}
+                      animate={inWinZone ? { scale: [1, 1.05, 1] } : {}}
+                      transition={{ repeat: Infinity, duration: 0.4 }}
+                    >
+                      {altitude.toFixed(2)}
+                    </motion.p>
+                  </div>
 
-                {/* Optimal zone bracket overlay */}
-                <div
-                  className="absolute top-0 bottom-0 border-x-2 border-green-400/60 pointer-events-none"
+                  {/* Target badge */}
+                  <div className="text-right">
+                    <p className="text-[8px] font-black tracking-[0.25em] text-white/30 uppercase">
+                      TARGET
+                    </p>
+                    <p
+                      className="text-xl font-black italic tabular-nums"
+                      style={{ color: theme_accent }}
+                    >
+                      {targetAltitude.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Proximity bar */}
+                <div className="relative w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${progress * 100}%`,
+                      backgroundColor: inWinZone
+                        ? "#22c55e"
+                        : altitude > winMax
+                          ? "#ef4444"
+                          : theme_accent,
+                      boxShadow: inWinZone ? "0 0 12px #22c55e" : "none",
+                      transition: "background-color 0.2s",
+                    }}
+                  />
+                  {/* Win zone bracket */}
+                  <div
+                    className="absolute top-0 bottom-0 border-x-2 border-green-400/70 pointer-events-none"
+                    style={{
+                      left: `${(winMin / (targetAltitude + tolerance)) * 100}%`,
+                      width: `${((winMax - winMin) / (targetAltitude + tolerance)) * 100}%`,
+                      backgroundColor: "#22c55e0a",
+                    }}
+                  />
+                </div>
+
+                {/* Zone label */}
+                <p
+                  className="text-[8px] font-mono text-center"
                   style={{
-                    left: `${OPTIMAL_MIN}%`,
-                    width: `${OPTIMAL_MAX - OPTIMAL_MIN}%`,
-                    backgroundColor: "#22c55e08",
+                    color: inWinZone
+                      ? "#22c55e"
+                      : altitude > winMax
+                        ? "#ef4444"
+                        : "#ffffff33",
                   }}
-                />
-              </div>
-
-              {/* Zone Labels */}
-              <div className="relative w-full h-3">
-                <span className="absolute text-[7px] font-mono text-white/20 uppercase" style={{ left: "0%" }}>COLD</span>
-                <span className="absolute text-[7px] font-mono text-green-400/60 uppercase -translate-x-1/2" style={{ left: `${(OPTIMAL_MIN + OPTIMAL_MAX) / 2}%` }}>EJECT ZONE</span>
-                <span className="absolute text-[7px] font-mono text-red-400/60 uppercase -translate-x-full" style={{ left: "100%" }}>OVERHEAT</span>
-              </div>
-            </motion.div>
-          )}
+                >
+                  {inWinZone
+                    ? "⚡ EJECT NOW — OPTIMAL ZONE"
+                    : altitude > winMax
+                      ? "OVERSHOT TARGET"
+                      : `APPROACH TARGET: ${winMin.toFixed(0)}–${winMax.toFixed(0)}`}
+                </p>
+              </motion.div>
+            )}
 
             <motion.div
               animate={
                 gameState === "playing"
                   ? {
-                      y: [0, -(temperature / 20), (temperature / 40), -(temperature / 30), 0],
-                      rotate: [0, -(temperature / 50), (temperature / 50), 0],
+                      y: [
+                        0,
+                        -(altitude / targetAltitude) * 12,
+                        (altitude / targetAltitude) * 6,
+                        -(altitude / targetAltitude) * 8,
+                        0,
+                      ],
+                      rotate: [
+                        0,
+                        -(altitude / targetAltitude) * 3,
+                        (altitude / targetAltitude) * 3,
+                        0,
+                      ],
                     }
                   : gameState === "ejected"
                     ? { x: "200%", y: "-100%", rotate: -20 }
@@ -736,7 +784,7 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
               }
               transition={
                 gameState === "playing"
-                  ? { repeat: Infinity, duration: Math.max(0.4, 2 - temperature / 80) }
+                  ? { repeat: Infinity, duration: Math.max(0.5, 2 - progress) }
                   : { duration: 1 }
               }
               className="z-10 mt-16"
@@ -744,7 +792,7 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
               {(gameState === "playing" ||
                 gameState === "idle" ||
                 gameState === "crashed" ||
-                gameState === "too_cold") && (
+                gameState === "missed") && (
                 <RetroHelicopter
                   color={theme_primary!}
                   accent={theme_accent!}
@@ -778,26 +826,24 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                   onClick={handleEject}
                   className="w-full py-6 rounded-3xl font-black text-2xl italic tracking-tighter text-white"
                   style={{
-                    backgroundColor:
-                      temperature >= OPTIMAL_MIN && temperature <= OPTIMAL_MAX
-                        ? "#16a34a"  // Green in optimal zone
-                        : temperature > OPTIMAL_MAX
-                        ? `#ef4444`  // Red in danger
-                        : theme_primary,  // Default
-                    boxShadow:
-                      temperature >= OPTIMAL_MIN && temperature <= OPTIMAL_MAX
-                        ? "0 0 30px #16a34a66"
-                        : temperature > OPTIMAL_MAX
-                        ? "0 0 30px #ef444466"
+                    backgroundColor: inWinZone
+                      ? "#16a34a"
+                      : altitude > winMax
+                        ? "#ef4444"
+                        : theme_primary,
+                    boxShadow: inWinZone
+                      ? "0 0 30px #16a34a88"
+                      : altitude > winMax
+                        ? "0 0 30px #ef444488"
                         : `0 0 20px ${theme_primary}44`,
-                    transition: "background-color 0.3s, box-shadow 0.3s",
+                    transition: "background-color 0.2s, box-shadow 0.2s",
                   }}
                 >
-                  {temperature >= OPTIMAL_MIN && temperature <= OPTIMAL_MAX
+                  {inWinZone
                     ? "⚡ EJECT NOW!"
-                    : temperature > OPTIMAL_MAX
-                    ? "🔥 EJECT NOW!"
-                    : "EJECT NOW!"}
+                    : altitude > winMax
+                      ? "🔥 OVERSHOT!"
+                      : "EJECT NOW!"}
                 </motion.button>
               ) : gameState === "idle" && !is_completed ? (
                 <motion.div
@@ -885,23 +931,23 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                 {[
                   {
                     icon: "01",
-                    label: "WARM THE ENGINES",
-                    desc: "Temperature rises every second. Watch the bar above.",
+                    label: "ALTITUDE CLIMBS",
+                    desc: `Watch the counter rise toward the target: ${targetAltitude.toFixed(2)}`,
                   },
                   {
                     icon: "02",
-                    label: "EJECT ZONE: 55–80°",
-                    desc: "Hit EJECT when the bar is in the GREEN zone to win",
+                    label: `HIT THE ZONE`,
+                    desc: `Eject when the bar is GREEN (${winMin.toFixed(0)}\u2013${winMax.toFixed(0)}) to win`,
                   },
                   {
                     icon: "03",
-                    label: "TOO COLD = FAIL",
-                    desc: "Eject below 55° and the engines stall — no reward",
+                    label: "EJECT EARLY = FAIL",
+                    desc: `Leaving before ${winMin.toFixed(0)} means no reward`,
                   },
                   {
                     icon: "04",
-                    label: "OVERHEAT = CRASH",
-                    desc: "Wait past 100° and the system burns out completely",
+                    label: "OVERSHOOT = CRASH",
+                    desc: `Pass ${winMax.toFixed(0)} and the flight is lost`,
                   },
                 ].map((rule) => (
                   <div key={rule.icon} className="flex items-start gap-3">
@@ -981,10 +1027,10 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
               </h2>
               <p className="text-xs font-mono text-white/60 mb-8 text-center uppercase tracking-widest">
                 {is_winning_modal_open
-                  ? `TEMPERATURE LOCKED: ${temperature.toFixed(0)}° — PERFECT EJECT`
-                  : temperature >= 100
-                    ? `OVERHEAT AT ${temperature.toFixed(0)}° — ENGINE DESTROYED`
-                    : `EJECTED AT ${temperature.toFixed(0)}° — ENGINE TOO COLD`}
+                  ? `EJECTED AT ${altitude.toFixed(2)} — TARGET: ${targetAltitude.toFixed(2)}`
+                  : altitude > winMax
+                    ? `OVERSHOT — EJECTED AT ${altitude.toFixed(2)}`
+                    : `EARLY EJECT AT ${altitude.toFixed(2)} — TOO SOON`}
               </p>
 
               {is_winning_modal_open ? (
