@@ -28,10 +28,10 @@
  * - framer-motion (for game animations)
  */
 
-"use client";
+'use client';
 
-import { type FC, useState, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { type FC, useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // =============================================================
 // @blizcc/ui — UI Components & Enums
@@ -49,6 +49,7 @@ import {
   WidgetSuccessOverlay,
   WidgetErrorOverlay,
   WidgetStartOverlay,
+
   WidgetUnifiedResultModal,
   WidgetRulesAcceptModal,
 
@@ -56,7 +57,7 @@ import {
   CONTENT_LANGUAGE_ENUM,
   COLLECTION_METHOD_ENUM,
   COLLECTION_METHOD_PLACEMENT_ENUM,
-} from "@blizcc/ui";
+} from '@blizcc/ui';
 
 // =============================================================
 // @blizcc/ui — Hooks
@@ -71,45 +72,45 @@ import {
   usePreviewStateOverride,
   useAudio,
   useSubmitWidgetEvents,
-} from "@blizcc/ui";
+} from '@blizcc/ui';
 
 // =============================================================
 // @blizcc/ui — Standard Interfaces
 // =============================================================
 import type { WidgetView } from "@blizcc/ui";
-import { SCHEMA } from "./schema";
+import { SCHEMA } from "./mbtes-schema";
+
+
 
 // =============================================================
 // MOCK RULES (Localized hints for the Rules Modal)
 // =============================================================
 const WIDGET_RULES = {
   [CONTENT_LANGUAGE_ENUM.ENGLISH]: {
-    what_it_is: "A high-speed interactive template widget.",
-    how_to_play: "Tap the screen repeatedly to reach the goal.",
+    what_it_is: 'A high-speed interactive template widget.',
+    how_to_play: 'Tap the screen repeatedly to reach the goal.',
   },
   [CONTENT_LANGUAGE_ENUM.RUSSIAN]: {
-    what_it_is: "Высокоскоростной интерактивный виджет-шаблон.",
-    how_to_play: "Многократно нажимайте на экран, чтобы достичь цели.",
+    what_it_is: 'Высокоскоростной интерактивный виджет-шаблон.',
+    how_to_play: 'Многократно нажимайте на экран, чтобы достичь цели.',
   },
 };
 
 const ENGINE_RULES = {
-  [CONTENT_LANGUAGE_ENUM.ENGLISH]:
-    "Prizes are awarded via a transparent Round-Robin algorithm.",
-  [CONTENT_LANGUAGE_ENUM.RUSSIAN]:
-    "Призы присуждаются с помощью прозрачного алгоритма Round-Robin.",
+  [CONTENT_LANGUAGE_ENUM.ENGLISH]: 'Prizes are awarded via a transparent Round-Robin algorithm.',
+  [CONTENT_LANGUAGE_ENUM.RUSSIAN]: 'Призы присуждаются с помощью прозрачного алгоритма Round-Robin.',
 };
 
 // =============================================================
 // WIDGET TEMPLATE COMPONENT
 // =============================================================
-const SpinWheelTest: FC<WidgetView> = ({
+const Mbtes: FC<WidgetView> = ({
   widget_id,
   link_id,
   theme_primary,
   theme_secondary,
-  theme_accent = SCHEMA.theme_accent,
-  theme_line_height = SCHEMA.theme_line_height,
+  theme_accent,
+  theme_line_height,
   text1,
   text2,
   text3,
@@ -134,8 +135,6 @@ const SpinWheelTest: FC<WidgetView> = ({
   preview_mode,
   preview_state_override,
 }) => {
-  console.log('promos:', promos);
-  console.log('title', text1, text2);
 
   // ===========================================================
   // STEP 1: VISITOR IDENTITY
@@ -150,8 +149,13 @@ const SpinWheelTest: FC<WidgetView> = ({
   // ===========================================================
   // STEP 2: FULLSCREEN
   // ===========================================================
-  const { element_ref, is_fullscreen, toggle_fullscreen, is_mobile, is_ios } =
-    useFullscreen();
+  const {
+    element_ref,
+    is_fullscreen,
+    toggle_fullscreen,
+    is_mobile,
+    is_ios,
+  } = useFullscreen();
 
   // ===========================================================
   // STEP 3: GAME RULES GATE
@@ -186,14 +190,11 @@ const SpinWheelTest: FC<WidgetView> = ({
   // ===========================================================
   // STEP 5: AUDIO
   // ===========================================================
-  const audio_config = useMemo(
-    () => ({
-      win: { src: "/ui/win.mp3", volume: 0.4, loop: false },
-      lose: { src: "/ui/lose.mp3", volume: 0.3, loop: false },
-      playing: { src: "/ui/playing.mp3", volume: 0.5, loop: false },
-    }),
-    [],
-  );
+  const audio_config = useMemo(() => ({
+    win:     { src: '/ui/win.mp3',     volume: 0.4, loop: false },
+    lose:    { src: '/ui/lose.mp3',    volume: 0.3, loop: false },
+    playing: { src: '/ui/playing.mp3', volume: 0.5, loop: false },
+  }), []);
 
   const { play, stop } = useAudio(audio_config);
 
@@ -232,84 +233,51 @@ const SpinWheelTest: FC<WidgetView> = ({
   // ===========================================================
   // STEP 8: PREVIEW STATE & OVERRIDES
   // ===========================================================
-  const [game_state, set_game_state] = useState<"idle" | "playing">("idle");
+  const [game_state, set_game_state] = useState<'idle' | 'playing'>('idle');
   const [show_confetti, set_show_confetti] = useState(false);
 
   usePreviewStateOverride({
     preview_mode,
     preview_state_override,
-    on_start_state: () => set_game_state("idle"),
-    on_game_state: () => set_game_state("playing"),
-    on_win_state: () => {
-      set_game_state("playing");
-      set_is_winning_modal_open(true);
-    },
-    on_lose_state: () => {
-      set_game_state("playing");
-      set_is_losing_modal_open(true);
-    },
+    on_start_state: () => set_game_state('idle'),
+    on_game_state:  () => set_game_state('playing'),
+    on_win_state:   () => { set_game_state('playing'); set_is_winning_modal_open(true); },
+    on_lose_state:  () => { set_game_state('playing'); set_is_losing_modal_open(true);  },
   });
 
   // ===========================================================
   // STEP 9: GAME MECHANICS
   // ===========================================================
   const execute_game = useCallback(() => {
-    if (
-      selected_index === null ||
-      is_interaction_disabled ||
-      is_completed ||
-      content_expired
-    )
-      return;
+    if (selected_index === null || is_interaction_disabled || is_completed || content_expired) return;
 
-    set_game_state("playing");
-    play("playing");
+    set_game_state('playing');
+    play('playing');
     send_interaction_event(widget_id, selected_index, promos);
 
     // Simulate 2-second animation
     setTimeout(() => {
-      stop("playing");
+      stop('playing');
       const is_winning = !promos[selected_index]?.is_default;
 
       if (is_winning) {
-        play("win");
+        play('win');
         set_show_confetti(true);
       } else {
-        play("lose");
+        play('lose');
         trigger_game_result();
       }
     }, 2000);
-  }, [
-    selected_index,
-    is_interaction_disabled,
-    is_completed,
-    content_expired,
-    play,
-    stop,
-    trigger_game_result,
-  ]);
+  }, [selected_index, is_interaction_disabled, is_completed, content_expired, play, stop, trigger_game_result]);
 
   const handle_start = useCallback(() => {
-    if (
-      content_expired ||
-      is_completed ||
-      is_sold_out ||
-      is_interaction_disabled
-    )
-      return;
+    if (content_expired || is_completed || is_sold_out || is_interaction_disabled) return;
     if (!has_accepted_rules) {
       set_is_rules_accept_modal_open(true);
       return;
     }
     execute_game();
-  }, [
-    content_expired,
-    is_completed,
-    is_sold_out,
-    is_interaction_disabled,
-    has_accepted_rules,
-    execute_game,
-  ]);
+  }, [content_expired, is_completed, is_sold_out, is_interaction_disabled, has_accepted_rules, execute_game]);
 
   // ===========================================================
   // RENDER
@@ -347,13 +315,13 @@ const SpinWheelTest: FC<WidgetView> = ({
           theme_primary={theme_primary!}
           theme_secondary={theme_secondary!}
           customer={lead_data}
-          message={text11 || ""}
+          message={text11 || ''}
         />
       )}
 
       {(select_promo_error || is_rate_limited) && (
         <WidgetErrorOverlay
-          error_type={is_rate_limited ? "RESERVED" : "GENERIC"}
+          error_type={is_rate_limited ? 'RESERVED' : 'GENERIC'}
           original_url={original_url}
           theme_primary={theme_primary!}
           theme_secondary={theme_secondary!}
@@ -383,7 +351,7 @@ const SpinWheelTest: FC<WidgetView> = ({
 
           <div className="flex-1 flex items-center justify-center w-full">
             <AnimatePresence mode="wait">
-              {game_state === "idle" ? (
+              {game_state === 'idle' ? (
                 <motion.div
                   key="idle"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -398,7 +366,7 @@ const SpinWheelTest: FC<WidgetView> = ({
                 <motion.div
                   key="playing"
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 0.8, repeat: 3, ease: "linear" }}
+                  transition={{ duration: 0.8, repeat: 3, ease: 'linear' }}
                   className="w-48 h-48 rounded-full border-8 flex items-center justify-center"
                   style={{ borderColor: theme_primary }}
                 />
@@ -407,7 +375,7 @@ const SpinWheelTest: FC<WidgetView> = ({
           </div>
 
           <WidgetStartOverlay
-            is_open={game_state === "idle"}
+            is_open={game_state === 'idle'}
             show_start={!is_completed}
             on_start={handle_start}
             loading={select_promo_loading || is_interaction_disabled}
@@ -440,9 +408,7 @@ const SpinWheelTest: FC<WidgetView> = ({
         collection_method={collection_method}
         collection_method_placement={collection_method_placement}
         loading={select_promo_loading}
-        on_submit={(data) =>
-          handle_post_game_submit(data.value, data.terms_accepted)
-        }
+        on_submit={(data) => handle_post_game_submit(data.value, data.terms_accepted)}
         modal_title={text4}
         input_label={text8}
         submit_button_text={text10}
@@ -482,4 +448,4 @@ const SpinWheelTest: FC<WidgetView> = ({
   );
 };
 
-export default SpinWheelTest;
+export default Mbtes;

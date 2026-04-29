@@ -22,8 +22,8 @@ fi
 
 # Define path
 DIR="./src/widgets/$UNIQUE_KEY"
-FILE_CONTENT="$DIR/content.tsx"
-FILE_SCHEMA="$DIR/schema.ts"
+FILE_CONTENT="$DIR/$UNIQUE_KEY-content.tsx"
+FILE_SCHEMA="$DIR/$UNIQUE_KEY-schema.ts"
 TEMPLATE_CONTENT="./src/template.tsx"
 
 # Create directory if it doesn't exist
@@ -82,7 +82,8 @@ EOF
 if [ -f "$TEMPLATE_CONTENT" ]; then
   # Read template and replace placeholders
   # 1. Replace WidgetTemplate with PascalCase key
-  sed "s/WidgetTemplate/$PASCAL_KEY/g" "$TEMPLATE_CONTENT" > "$FILE_CONTENT"
+  # 2. Replace './schema' with './$UNIQUE_KEY-schema'
+  sed "s/WidgetTemplate/$PASCAL_KEY/g; s|'./schema'|'./$UNIQUE_KEY-schema'|g" "$TEMPLATE_CONTENT" > "$FILE_CONTENT"
   echo "✓ Created $FILE_CONTENT (cloned from $TEMPLATE_CONTENT)"
   echo "✓ Created $FILE_SCHEMA"
 else
@@ -90,7 +91,7 @@ else
   # Fallback content
   cat <<EOF > "$FILE_CONTENT"
 import { type FC } from 'react';
-import { SCHEMA } from './schema';
+import { SCHEMA } from './$UNIQUE_KEY-schema';
 
 export const $PASCAL_KEY: FC = () => {
   return (

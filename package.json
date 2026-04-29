@@ -4,10 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "./scripts/validate-widgets.sh && vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:widgets": "./scripts/validate-widgets.sh"
   },
   "dependencies": {
     "@blizcc/ui": "^0.1.39",
