@@ -18,21 +18,21 @@ export const SCHEMA: WidgetView = {
   theme_line_height: "1.2",
 
   // ---- Content ----
-  text1: "RETRO AVIATOR",                    // Heading
-  text2: "Reach maximum altitude without crashing!",  // Sub-heading
-  text3: "LAUNCH MISSION",                        // CTA Button
-  text4: "MISSION COMPLETE!",                // Win Modal Title
-  text5: "HOLD TO CLIMB, RELEASE TO EJECT",                     // Instruction
-  text7: "PREPARE FOR TAKE OFF",                  // Overlay Heading
-  text8: "Neural ID (Email)",               // Input Label
-  text10: "SUBMIT FLIGHT LOG",         // Post-submit
-  text11: "Your loot is being processed.",       // Success Desc
-  text14: "SYSTEM MALFUNCTION",     // Validation Error
+  text1: "RETRO AVIATOR", // Heading
+  text2: "Reach maximum altitude without crashing!", // Sub-heading
+  text3: "LAUNCH MISSION", // CTA Button
+  text4: "MISSION COMPLETE!", // Win Modal Title
+  text5: "HOLD TO CLIMB, RELEASE TO EJECT", // Instruction
+  text7: "PREPARE FOR TAKE OFF", // Overlay Heading
+  text8: "Neural ID (Email)", // Input Label
+  text10: "SUBMIT FLIGHT LOG", // Post-submit
+  text11: "Your loot is being processed.", // Success Desc
+  text14: "SYSTEM MALFUNCTION", // Validation Error
   // ---- Game Config (marketer-controlled) ----
   // text16: target altitude number the player must hit to win (±3% window)
   // e.g. "844.84" means the player must eject between ~820 and ~869
-  text16: "844.84",             // Target altitude — set this per campaign
-  text18: "ALTITUDE",           // Metric label shown above the counter
+  text16: "844.84", // Target altitude — set this per campaign
+  text18: "ALTITUDE", // Metric label shown above the counter
 
   // ---- Data & Config ----
   promos: [],
