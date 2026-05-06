@@ -1,48 +1,49 @@
-import {
-  COLLECTION_METHOD_ENUM,
-  COLLECTION_METHOD_PLACEMENT_ENUM,
-  CONTENT_LANGUAGE_ENUM,
-  type WidgetView,
-} from "@blizcc/ui";
+import { TEMPLATE_PROMOS } from "../../utils/promos";
 
-export const SCHEMA: WidgetView = {
-  // ---- Identity ----
-  widget_id: "retro-aviator-crash",
-  link_id: "mock_link",
-  slug: "try-your-luck",
-
+/**
+ * Retro Aviator Crash — Developer Schema
+ *
+ * Only define what your game needs:
+ *   - Theme colors
+ *   - Content strings (text labels)
+ *   - Game config (altitude target, metric label)
+ *   - Promos (prize pool)
+ *   - Preview toggle
+ *
+ * Platform defaults (widget_id, collection config, terms, etc.)
+ * are provided by BASE_SCHEMA and injected by the wrapper at runtime.
+ */
+export const GAME_CONFIG = {
   // ---- Theme ----
-  theme_primary: "#ff4d00", // Rocket Orange
+  theme_primary: "#ff4d00",   // Rocket Orange
   theme_secondary: "#000814", // Space Black
-  theme_accent: "#00f2ff", // Plasma Blue
+  theme_accent: "#00f2ff",    // Plasma Blue
   theme_line_height: "1.2",
 
   // ---- Content ----
-  text1: "RETRO AVIATOR", // Heading
+  text1: "RETRO AVIATOR",                         // Heading
   text2: "Reach maximum altitude without crashing!", // Sub-heading
-  text3: "LAUNCH MISSION", // CTA Button
-  text4: "MISSION COMPLETE!", // Win Modal Title
-  text5: "HOLD TO CLIMB, RELEASE TO EJECT", // Instruction
-  text7: "PREPARE FOR TAKE OFF", // Overlay Heading
-  text8: "Neural ID (Email)", // Input Label
-  text10: "SUBMIT FLIGHT LOG", // Post-submit
-  text11: "Your loot is being processed.", // Success Desc
-  text14: "SYSTEM MALFUNCTION", // Validation Error
-  // ---- Game Config (marketer-controlled) ----
-  // text16: target altitude number the player must hit to win (±3% window)
-  // e.g. "844.84" means the player must eject between ~820 and ~869
-  text16: "844.84", // Target altitude — set this per campaign
+  text3: "LAUNCH MISSION",                         // CTA Button
+  text4: "MISSION COMPLETE!",                      // Win Modal Title
+  text5: "HOLD TO CLIMB, RELEASE TO EJECT",        // Instruction
+  text7: "PREPARE FOR TAKE OFF",                   // Overlay Heading
+  text8: "Neural ID (Email)",                      // Input Label
+  text10: "SUBMIT FLIGHT LOG",                     // Post-submit
+  text11: "Your loot is being processed.",         // Success Desc
+  text14: "SYSTEM MALFUNCTION",                    // Validation Error
+
+  // ---- Game Config ----
+  // text16: target altitude the player must eject within (±3% win window)
+  text16: "844.84",   // Target altitude — set this per campaign
   text18: "ALTITUDE", // Metric label shown above the counter
 
-  // ---- Data & Config ----
-  promos: [],
-  content_language: CONTENT_LANGUAGE_ENUM.ENGLISH,
-  collection_method: COLLECTION_METHOD_ENUM.EMAIL,
-  collection_method_placement: COLLECTION_METHOD_PLACEMENT_ENUM.AFTER_PLAY,
+  // ---- Prize Pool ----
+  promos: TEMPLATE_PROMOS,
+
+  // ---- Dev Toggles ----
   preview_mode: false,
-  content_expired: false,
-  short_url: "",
-  original_url: "",
+
+  // ---- Terms (game-specific) ----
   terms_text: "I accept the flight regulations and terms.",
   terms_link: "https://example.com/aviator-terms",
 };

@@ -35,19 +35,18 @@ PASCAL_KEY=$(echo "$UNIQUE_KEY" | perl -pe 's/(^|-)(\w)/\U$2/g')
 
 # 1. Create schema.ts
 cat <<EOF > "$FILE_SCHEMA"
-import {
-  COLLECTION_METHOD_ENUM,
-  COLLECTION_METHOD_PLACEMENT_ENUM,
-  CONTENT_LANGUAGE_ENUM,
-  type WidgetView,
-} from "@blizcc/ui";
-
-export const SCHEMA: WidgetView = {
-  // ---- Identity ----
-  widget_id: "$UNIQUE_KEY",
-  link_id: "mock_link",
-  slug: "try-your-luck",
-
+/**
+ * $PASCAL_KEY — Developer Schema
+ *
+ * Only define what your game needs:
+ *   - Theme colors
+ *   - Content strings (text labels)
+ *   - Preview toggle
+ *
+ * Platform defaults (widget_id, promos, collection config, etc.)
+ * are provided by BASE_SCHEMA and injected by the wrapper at runtime.
+ */
+export const GAME_CONFIG = {
   // ---- Theme ----
   theme_primary: "#7c3aed",
   theme_secondary: "#4b5563",
@@ -55,28 +54,19 @@ export const SCHEMA: WidgetView = {
   theme_line_height: "1.4",
 
   // ---- Content ----
-  text1: "Play to Win",                    // Heading
-  text2: "Try your luck and win prizes!",  // Sub-heading
-  text3: "Play Now",                        // CTA Button
-  text4: "Congratulations!",                // Win Modal Title
-  text5: "Tap to play",                     // Instruction
-  text7: "Ready to play?",                  // Overlay Heading
-  text8: "Your phone number",               // Input Label
-  text10: "Thanks for submitting!",         // Post-submit
-  text11: "We'll send your prize to",       // Success Desc
-  text14: "Enter a valid phone number",     // Validation Error
+  text1: "Play to Win",                   // Heading
+  text2: "Try your luck and win prizes!", // Sub-heading
+  text3: "Play Now",                      // CTA Button
+  text4: "Congratulations!",             // Win Modal Title
+  text5: "Tap to play",                  // Instruction
+  text7: "Ready to play?",               // Overlay Heading
+  text8: "Your phone number",            // Input Label
+  text10: "Thanks for submitting!",      // Post-submit
+  text11: "We'll send your prize to",    // Success Desc
+  text14: "Enter a valid phone number",  // Validation Error
 
-  // ---- Data & Config ----
-  promos: [],
-  content_language: CONTENT_LANGUAGE_ENUM.ENGLISH,
-  collection_method: COLLECTION_METHOD_ENUM.PHONE,
-  collection_method_placement: COLLECTION_METHOD_PLACEMENT_ENUM.AFTER_PLAY,
+  // ---- Dev Toggles ----
   preview_mode: false,
-  content_expired: false,
-  short_url: "",
-  original_url: "",
-  terms_text: "I accept the terms and conditions.",
-  terms_link: "https://example.com/terms",
 };
 EOF
 

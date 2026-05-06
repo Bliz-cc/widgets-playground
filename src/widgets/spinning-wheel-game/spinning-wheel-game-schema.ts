@@ -1,16 +1,19 @@
-import {
-  COLLECTION_METHOD_ENUM,
-  COLLECTION_METHOD_PLACEMENT_ENUM,
-  CONTENT_LANGUAGE_ENUM,
-  type WidgetView,
-} from "@blizcc/ui";
+import { TEMPLATE_PROMOS } from "../../utils/promos";
 
-export const SCHEMA: WidgetView = {
-  // ---- Identity ----
-  widget_id: "spinning-wheel-game",
-  link_id: "mock_link",
-  slug: "spin-to-win",
-
+/**
+ * Spinning Wheel Game — Developer Schema
+ *
+ * Only define what your game needs:
+ *   - Theme colors
+ *   - Segment colors
+ *   - Content strings (text labels)
+ *   - Promos (wheel segments)
+ *   - Preview toggle
+ *
+ * Platform defaults (widget_id, collection config, terms, etc.)
+ * are provided by BASE_SCHEMA and injected by the wrapper at runtime.
+ */
+export const GAME_CONFIG = {
   // ---- Theme ----
   theme_primary: "#8fb69a",
   theme_secondary: "#808ba7",
@@ -28,27 +31,18 @@ export const SCHEMA: WidgetView = {
   color8: "#808ba7",
 
   // ---- Content ----
-  text1: "SPIN TO WIN",
-  text2: "Spin the wheel to reveal your prize",
-  text3: "Spin now",
-  text4: "Congratulations!",
-  text5: "Tap start to play",
-  text7: "Ready to play?",
-  text8: "Your phone",
-  text10: "Thanks for submitting!",
-  text11: "We'll send your prize to",
-  text14: "Enter valid phone number",
+  text1: "SPIN TO WIN", // Heading
+  text2: "Spin the wheel to win", // Sub-heading
+  text3: "Spin now", // CTA button
+  text4: "Congratulations!", // Win modal title
+  text5: "Tap the button to start", // Instruction
+  text7: "Ready to play?", // Start overlay heading
+  text8: "Your phone", // Input label
+  text10: "Thanks for submitting!", // Post-submit message
+  text11: "We'll send your prize to", // Success description
+  text14: "Enter valid phone number", // Validation error
 
-  // ---- Data & Config ----
-  promos: [],
-  content_language: CONTENT_LANGUAGE_ENUM.ENGLISH,
-  collection_method: COLLECTION_METHOD_ENUM.PHONE,
-  collection_method_placement: COLLECTION_METHOD_PLACEMENT_ENUM.AFTER_PLAY,
+  promos: TEMPLATE_PROMOS,
+  // ---- Dev Toggles ----
   preview_mode: false,
-  content_expired: false,
-  short_url: "",
-  original_url: "",
-  terms_text: "I accept the terms and conditions.",
-  terms_link: "https://example.com/terms",
-  prize_claim_instructions: [],
 };

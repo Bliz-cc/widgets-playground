@@ -21,7 +21,6 @@ import {
   WidgetWinningModal,
 } from "@blizcc/ui";
 import type { WidgetView, DynamicWidgetView } from "@blizcc/ui";
-import { TEMPLATE_PROMOS } from "./utils/promos";
 
 interface WrapperProps extends WidgetView {
   Component: FC<DynamicWidgetView>;
@@ -105,7 +104,7 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     set_is_losing_modal_open,
   } = useGameSession({
     widget_id: config.widget_id,
-    promos: TEMPLATE_PROMOS,
+    promos: config.promos,
     selected_index,
     on_close_cleanup: is_fullscreen ? toggle_fullscreen : undefined,
     auto_skip_delay: 4000,
@@ -175,7 +174,6 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     widget_visitor_index: visitor_index ?? 0,
     is_rules_accepted: has_accepted_rules,
     show_rules_popup,
-    promos: TEMPLATE_PROMOS,
     fetch_promo_idx,
     show_winning_popup,
     show_losing_popup,
