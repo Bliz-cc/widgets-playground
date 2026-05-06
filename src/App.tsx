@@ -1,5 +1,5 @@
-import { RetroAviatorContent } from "./widgets/retro-aviator-crash/retro-aviator-crash-content";
-import { SCHEMA } from "./widgets/retro-aviator-crash/retro-aviator-crash-schema";
+import { SpinningWheelGame } from "./widgets/spinning-wheel-game/spinning-wheel-game-content";
+import { SCHEMA } from "./widgets/spinning-wheel-game/spinning-wheel-game-schema";
 import { TEMPLATE_PROMOS } from "./utils/promos";
 import DynamicWidgetWrapper from "./wrapper";
 
@@ -8,7 +8,7 @@ const Game = () => {
     <DynamicWidgetWrapper
       {...SCHEMA}
       promos={TEMPLATE_PROMOS}
-      Component={RetroAviatorContent}
+      Component={SpinningWheelGame}
     />
   );
 };

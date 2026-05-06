@@ -75,6 +75,8 @@ export const SCHEMA: WidgetView = {
   content_expired: false,
   short_url: "",
   original_url: "",
+  terms_text: "I accept the terms and conditions.",
+  terms_link: "https://example.com/terms",
 };
 EOF
 
@@ -91,13 +93,30 @@ else
   # Fallback content
   cat <<EOF > "$FILE_CONTENT"
 import { type FC } from 'react';
-import { SCHEMA } from './$UNIQUE_KEY-schema';
+import { type DynamicWidgetView } from "@blizcc/ui";
 
-export const $PASCAL_KEY: FC = () => {
+export const $PASCAL_KEY: FC<DynamicWidgetView> = (props) => {
+  const { 
+    theme_primary, 
+    text1, 
+    is_rules_accepted, 
+    show_rules_popup 
+  } = props;
+
   return (
-    <div id="$UNIQUE_KEY-container" className="p-8 border border-white/10 rounded-3xl bg-black/40 backdrop-blur-xl text-white">
-      <h1 className="text-3xl font-extrabold mb-4 uppercase tracking-tighter">$UNIQUE_KEY</h1>
-      <p className="text-white/60">Component generated successfully.</p>
+    <div className="p-8 border-2 rounded-3xl text-white text-center" style={{ borderColor: theme_primary }}>
+      <h1 className="text-3xl font-black mb-4 uppercase">{text1 || "$UNIQUE_KEY"}</h1>
+      <p className="opacity-60 mb-6">Component generated successfully.</p>
+      
+      {!is_rules_accepted && (
+        <button 
+          onClick={show_rules_popup}
+          className="px-8 py-3 rounded-full font-bold"
+          style={{ backgroundColor: theme_primary }}
+        >
+          Accept Rules to Play
+        </button>
+      )}
     </div>
   );
 };

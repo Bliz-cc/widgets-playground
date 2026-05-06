@@ -21,6 +21,7 @@ import {
   WidgetWinningModal,
 } from "@blizcc/ui";
 import type { WidgetView, DynamicWidgetView } from "@blizcc/ui";
+import { TEMPLATE_PROMOS } from "./utils/promos";
 
 interface WrapperProps extends WidgetView {
   Component: FC<DynamicWidgetView>;
@@ -166,10 +167,12 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     show_rules_popup: () => {
       set_is_rules_accept_modal_open(true);
     },
+    promos: TEMPLATE_PROMOS,
     fetch_promo_idx,
     show_winning_popup: () => {
       const is_winning =
         selected_index !== null && !config.promos[selected_index]?.is_default;
+      console.log("selected index:", selected_index);
       if (is_winning) {
         set_show_confetti(true);
       } else {
