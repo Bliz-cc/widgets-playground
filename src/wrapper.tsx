@@ -1,14 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import {
-  type FC,
-  useState,
-  useCallback,
-  useMemo,
-  useEffect,
-  useRef,
-} from "react";
+import { type FC, useState, useCallback, useMemo } from "react";
 import {
   WidgetBaseContainer,
   WidgetFullscreenToggle,
@@ -20,12 +13,14 @@ import {
   useGetVisitorIndex,
   useFullscreen,
   useGameRules,
-  usePromoAutoSelect,
+  useSelectPromo,
   useGameSession,
   usePreviewStateOverride,
   useAudio,
   useSubmitWidgetEvents,
+  WidgetLosingOverlay,
   WidgetEventType,
+  WidgetWinningModal,
 } from "@blizcc/ui";
 import type { WidgetView, DynamicWidgetView } from "@blizcc/ui";
 
@@ -67,18 +62,13 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   // STEP 4: PRIZE SELECTION
   // ===========================================================
   const {
-    selected_index,
-    select_promo_loading,
+    select_promo,
     selected_promo,
+    select_promo_loading,
     select_promo_error,
-  } = usePromoAutoSelect({
-    widget_id: config.widget_id,
-    link_id: config.link_id,
-    preview_mode: config.preview_mode,
-    content_expired: config.content_expired,
-    promos_length: config.promos.length,
-    skip_fetch: is_interaction_disabled || visitor_index_loading,
-  });
+  } = useSelectPromo();
+
+  const selected_index = selected_promo?.selected_idx ?? null;
 
   // ===========================================================
   // STEP 5: AUDIO
@@ -111,9 +101,7 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     is_losing_modal_open,
     is_completed,
     lead_data,
-    trigger_game_result,
     handle_post_game_submit,
-    handle_pre_game_submit,
     handle_claim_win_id,
     handle_close,
     set_is_winning_modal_open,
@@ -146,21 +134,14 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   // STEP 9: DYNAMIC PROPS MAPPING
   // ===========================================================
 
-  const winningIndexResolveRef = useRef<((idx: number) => void) | null>(null);
-
-  useEffect(() => {
-    if (selected_index !== null && winningIndexResolveRef.current) {
-      winningIndexResolveRef.current(selected_index);
-      winningIndexResolveRef.current = null;
-    }
-  }, [selected_index]);
-
   const fetch_winning_index = useCallback(async () => {
     if (selected_index !== null) return selected_index;
-    return new Promise<number>((resolve) => {
-      winningIndexResolveRef.current = resolve;
+    const res = await select_promo({
+      widget_id: config.widget_id,
+      link_id: config.link_id,
     });
-  }, [selected_index]);
+    return res?.selected_idx ?? 0;
+  }, [selected_index, select_promo, config.widget_id, config.link_id]);
 
   const dynamicProps: DynamicWidgetView = {
     ...config,
@@ -174,13 +155,15 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
       if (is_winning) {
         set_show_confetti(true);
       } else {
-        trigger_game_result();
+        set_is_losing_modal_open(true);
       }
     },
     show_losing_popup: () => {
-      trigger_game_result();
+      set_is_losing_modal_open(true);
     },
     track_event: (event, payload) => {
+      // console.log("event:", event);
+      // console.log("payload:", payload);
       if (event === WidgetEventType.WIDGET_INTERACTION) {
         send_interaction_event(
           config.widget_id,
@@ -228,7 +211,7 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
           duration={3}
           on_animation_end={() => {
             set_show_confetti(false);
-            trigger_game_result();
+            set_is_winning_modal_open(true);
           }}
         />
       )}
@@ -252,8 +235,18 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
         />
       )}
 
-      <WidgetUnifiedResultModal
-        is_open={is_winning_modal_open || is_losing_modal_open}
+      {is_losing_modal_open && (
+        <WidgetLosingOverlay
+          message={config.text7 || "Better luck next time!"}
+          theme_primary={config.theme_primary!}
+          theme_secondary={config.theme_secondary}
+          theme_accent={config.theme_accent}
+          on_close={handle_close}
+        />
+      )}
+
+      <WidgetWinningModal
+        is_open={is_winning_modal_open}
         on_close={handle_close}
         promo={
           selected_index !== null ? config.promos[selected_index] : undefined
@@ -264,30 +257,18 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
         theme_line_height={config.theme_line_height}
         content_language={config.content_language}
         collection_method={config.collection_method}
-        collection_method_placement={config.collection_method_placement}
-        loading={select_promo_loading}
-        on_submit={(data) =>
-          handle_post_game_submit(data.value, data.terms_accepted)
-        }
         modal_title={config.text4}
-        input_label={config.text8}
+        input_placeholder={config.text8}
         submit_button_text={config.text10}
         validation_error_text={config.text14}
         terms_text={config.terms_text}
         terms_link={config.terms_link}
-        selection_method={config.selection_method}
-        widget_display_usage={config.widget_display_usage}
-        widget_visit_usage={config.widget_visit_usage}
-        widget_visitor_index={visitor_index ?? 0}
-        selected_promo={selected_promo}
+        on_submit={(data) =>
+          handle_post_game_submit(data.value, data.terms_accepted)
+        }
+        submit_loading={select_promo_loading}
+        round_id={selected_promo?.round_id}
         on_round_id_copy={handle_claim_win_id}
-        on_round_id_fetch={() => {
-          send_interaction_finished_event(
-            config.widget_id,
-            selected_index ?? 0,
-            config.promos,
-          );
-        }}
       />
 
       {!config.content_expired && (

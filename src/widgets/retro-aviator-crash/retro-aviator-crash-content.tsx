@@ -502,6 +502,13 @@ export const RetroAviatorContent: FC<DynamicWidgetView> = (props) => {
     };
   }, []);
 
+  //  CASE 1. game starts once rules are accepted from parent component
+  useEffect(() => {
+    if (is_rules_accepted && gameState === "idle") {
+      executeGame();
+    }
+  }, [is_rules_accepted, gameState, executeGame]);
+
   return (
     <>
       {/* Game Specific Background covering the whole BaseContainer */}
