@@ -5,11 +5,13 @@ import DynamicWidgetWrapper from "./wrapper";
 
 const Game = () => {
   return (
-    <DynamicWidgetWrapper
-      {...SCHEMA}
-      promos={TEMPLATE_PROMOS}
-      Component={SpinningWheelGame}
-    />
+    <div className="flex items-center justify-center h-screen w-screen bg-slate-100">
+      <DynamicWidgetWrapper
+        {...SCHEMA}
+        promos={TEMPLATE_PROMOS}
+        Component={SpinningWheelGame}
+      />
+    </div>
   );
 };
 

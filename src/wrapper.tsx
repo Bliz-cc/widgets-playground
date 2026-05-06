@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { type FC, useState, useCallback, useMemo, useEffect } from "react";
+import { type FC, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   WidgetBaseContainer,
   WidgetFullscreenToggle,
@@ -64,6 +64,10 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
 
   const selected_index = selected_promo?.selected_idx ?? null;
 
+  // Ref always holds the latest selected_promo — avoids stale closure in show_winning_popup
+  const selected_promo_ref = useRef(selected_promo);
+  selected_promo_ref.current = selected_promo;
+
   // ===========================================================
   // STEP 5: AUDIO
   // ===========================================================
@@ -82,7 +86,6 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   // STEP 6: EVENT TRACKING
   // ===========================================================
   const {
-    send_interaction_event,
     send_consent_game_start,
     send_interaction_finished_event,
   } = useSubmitWidgetEvents(config.preview_mode);
@@ -102,7 +105,7 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     set_is_losing_modal_open,
   } = useGameSession({
     widget_id: config.widget_id,
-    promos: config.promos,
+    promos: TEMPLATE_PROMOS,
     selected_index,
     on_close_cleanup: is_fullscreen ? toggle_fullscreen : undefined,
     auto_skip_delay: 4000,
@@ -128,22 +131,10 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   // AUTOMATIC EVENT TRACKING
   // ===========================================================
 
-  // 1. View Event: Tracked when visitor is identified
-  useEffect(() => {
-    if (visitor_index !== null) {
-      // In this system, consent_game_start is often used as the initial entry/view pulse
-      send_consent_game_start(config.widget_id);
-    }
-  }, [visitor_index]);
-
-  // 2. Interaction Event: Tracked when rules are accepted (Game Start)
+  // Fire consent event when rules are accepted (true game start signal)
   useEffect(() => {
     if (has_accepted_rules) {
-      send_interaction_event(
-        config.widget_id,
-        selected_index ?? 0,
-        config.promos,
-      );
+      send_consent_game_start(config.widget_id);
     }
   }, [has_accepted_rules]);
 
@@ -160,40 +151,45 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     return res?.selected_idx ?? 0;
   }, [selected_index, select_promo, config.widget_id, config.link_id]);
 
+  const show_winning_popup = useCallback(() => {
+    // Read from ref — always the latest value, no stale closure
+    const promo = selected_promo_ref.current;
+    const idx = promo?.selected_idx ?? null;
+    if (idx !== null && !config.promos[idx]?.is_default) {
+      set_show_confetti(true);
+    } else {
+      set_is_losing_modal_open(true);
+    }
+  }, [config.promos]);
+
+  const show_losing_popup = useCallback(() => {
+    set_is_losing_modal_open(true);
+  }, []);
+
+  const show_rules_popup = useCallback(() => {
+    set_is_rules_accept_modal_open(true);
+  }, []);
+
   const dynamicProps: DynamicWidgetView = {
     ...config,
     widget_visitor_index: visitor_index ?? 0,
     is_rules_accepted: has_accepted_rules,
-    show_rules_popup: () => {
-      set_is_rules_accept_modal_open(true);
-    },
+    show_rules_popup,
     promos: TEMPLATE_PROMOS,
     fetch_promo_idx,
-    show_winning_popup: () => {
-      const is_winning =
-        selected_index !== null && !config.promos[selected_index]?.is_default;
-      console.log("selected index:", selected_index);
-      if (is_winning) {
-        set_show_confetti(true);
-      } else {
-        set_is_losing_modal_open(true);
-      }
-    },
-    show_losing_popup: () => {
-      set_is_losing_modal_open(true);
-    },
-    play_audio: (track) => play(track),
-    stop_audio: (track) => stop(track),
+    show_winning_popup,
+    show_losing_popup,
+    play_audio: play,
+    stop_audio: stop,
   };
 
   // ===========================================================
   // RENDER
   // ===========================================================
   return (
-    <div className="flex items-center justify-center h-screen w-screen bg-transparent">
-      <WidgetBaseContainer ref={element_ref} is_fullscreen={is_fullscreen}>
-        {/* Component is responsible for its own layout and background */}
-        <Component {...dynamicProps} />
+    <WidgetBaseContainer ref={element_ref} is_fullscreen={is_fullscreen}>
+      {/* Component is responsible for its own layout and background */}
+      <Component {...dynamicProps} />
 
         <WidgetFullscreenToggle
           is_fullscreen={is_fullscreen}
@@ -290,9 +286,8 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
             theme_line_height={config.theme_line_height}
             content_language={config.content_language}
           />
-        )}
-      </WidgetBaseContainer>
-    </div>
+      )}
+    </WidgetBaseContainer>
   );
 };
 
