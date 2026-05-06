@@ -12,37 +12,14 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // =============================================================
-// @blizcc/ui — UI Components & Enums
-// =============================================================
-import {
-  WidgetBaseContainer,
-  WidgetLayoutContent,
-  WidgetHeadings,
-  WidgetFullscreenToggle,
-  WidgetConfetti,
-  WidgetSuccessOverlay,
-  WidgetErrorOverlay,
-  CONTENT_LANGUAGE_ENUM,
-} from "@blizcc/ui";
-
-// =============================================================
-// @blizcc/ui — Hooks
-// =============================================================
-import {
-  useGetVisitorIndex,
-  useFullscreen,
-  usePromoAutoSelect,
-  usePromoSoldOut,
-  useGameSession,
-  usePreviewStateOverride,
-  useAudio,
-  useSubmitWidgetEvents,
-} from "@blizcc/ui";
-
-// =============================================================
 // @blizcc/ui — Standard Interfaces
 // =============================================================
-import type { WidgetView } from "@blizcc/ui";
+import {
+  type DynamicWidgetView,
+  WidgetEventType,
+  WidgetHeadings,
+  WidgetLayoutContent,
+} from "@blizcc/ui";
 
 // =============================================================
 // RETRO HELICOPTER SVG COMPONENT
@@ -377,101 +354,40 @@ const RetroHelicopter: FC<{
   );
 };
 
-interface AviatorWidgetView extends WidgetView {
-  text16?: string;
-  text18?: string;
-}
-
 // =============================================================
 // MAIN COMPONENT
 // =============================================================
-const RetroAviatorCrash: FC<AviatorWidgetView> = ({
-  widget_id,
-  link_id,
-  theme_primary,
-  theme_secondary,
-  theme_accent,
-  theme_line_height,
-  text1,
-  text2,
-  text3,
-  text4,
-  text5,
-  text8,
-  text10,
-  text11,
-  text16,
-  text18,
-  promos,
-  original_url = "",
-  content_expired,
-  content_language = CONTENT_LANGUAGE_ENUM.ENGLISH,
-  terms_link,
-  terms_text,
-  preview_mode,
-  preview_state_override,
-}) => {
-  // Hooks
+export const RetroAviatorContent: FC<DynamicWidgetView> = (props) => {
   const {
-    visitor_index,
-    visitor_index_loading,
-    is_rate_limited,
-    is_interaction_disabled,
-  } = useGetVisitorIndex();
-  const { element_ref, is_fullscreen, toggle_fullscreen, is_mobile, is_ios } =
-    useFullscreen();
-  const { selected_index, select_promo_loading, select_promo_error } =
-    usePromoAutoSelect({
-      widget_id,
-      link_id,
-      preview_mode,
-      content_expired,
-      promos_length: promos.length,
-      skip_fetch: is_interaction_disabled || visitor_index_loading,
-    });
-  const { is_sold_out } = usePromoSoldOut(promos);
-  const { send_interaction_event } = useSubmitWidgetEvents(preview_mode);
-
-  const {
-    is_winning_modal_open,
-    is_losing_modal_open,
-    is_completed,
-    lead_data,
-    trigger_game_result,
-    handle_post_game_submit,
-    set_is_winning_modal_open,
-    set_is_losing_modal_open,
-  } = useGameSession({
-    widget_id,
-    promos,
-    selected_index,
-    on_close_cleanup: is_fullscreen ? toggle_fullscreen : undefined,
-    auto_skip_delay: 4000,
-  });
-
-  const { play, stop } = useAudio(
-    useMemo(
-      () => ({
-        win: { src: "/ui/win.mp3", volume: 0.4, loop: false },
-        lose: { src: "/ui/lose.mp3", volume: 0.3, loop: false },
-        playing: { src: "/ui/playing.mp3", volume: 0.5, loop: true },
-        crash: { src: "/ui/lose.mp3", volume: 0.6, loop: false },
-      }),
-      [],
-    ),
-  );
+    theme_primary,
+    theme_accent,
+    theme_secondary,
+    theme_line_height,
+    text1,
+    text2,
+    text3,
+    text5,
+    text16,
+    text18,
+    widget_visitor_index,
+    is_rules_accepted,
+    require_rules_consent,
+    fetch_winning_index,
+    show_winning_popup,
+    show_losing_popup,
+    track_event,
+    play_audio,
+    stop_audio,
+    preview_state_override,
+  } = props;
 
   // Game State
-  const [email, set_email] = useState("");
-  const [terms_accepted, set_terms_accepted] = useState(false);
-  const [showRules, setShowRules] = useState(false);
   const [gameState, setGameState] = useState<
     "idle" | "playing" | "ejected" | "crashed" | "missed"
   >("idle");
   const [altitude, setAltitude] = useState(1);
-  const [showConfetti, setShowConfetti] = useState(false);
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const speedRef = useRef(0); // units per tick (set fresh each game)
+  const speedRef = useRef(0);
 
   // Target altitude from marketer prop (text16), e.g. "844.84" → 844.84
   const targetAltitude = useMemo(
@@ -495,26 +411,40 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
   const progress = Math.min(1, altitude / (targetAltitude + tolerance));
   const inWinZone = altitude >= winMin && altitude <= winMax;
 
-  usePreviewStateOverride({
-    preview_mode,
-    preview_state_override,
-    on_start_state: () => setGameState("idle"),
-    on_game_state: () => setGameState("playing"),
-    on_win_state: () => set_is_winning_modal_open(true),
-    on_lose_state: () => set_is_losing_modal_open(true),
-  });
+  useEffect(() => {
+    if (preview_state_override) {
+      if (
+        preview_state_override === "idle" ||
+        preview_state_override === "playing"
+      ) {
+        setGameState(preview_state_override as any);
+      }
+    }
+  }, [preview_state_override]);
 
-  const executeGame = useCallback(() => {
-    if (is_interaction_disabled || is_completed || content_expired) return;
+  const handleCrash = useCallback(() => {
+    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
+    stop_audio("playing");
+    play_audio("lose");
+    setGameState("crashed");
 
+    setTimeout(() => {
+      show_losing_popup();
+    }, 1500);
+  }, [stop_audio, play_audio, show_losing_popup]);
+
+  const executeGame = useCallback(async () => {
     setGameState("playing");
     setAltitude(1);
-    // Random speed so players can't memorise timing — full run takes 6–14s
-    // speed = targetAltitude / (ticks in desired duration)
-    const durationTicks = (6000 + Math.random() * 8000) / 50; // ticks @ 50ms
+
+    const durationTicks = (6000 + Math.random() * 8000) / 50;
     speedRef.current = targetAltitude / durationTicks;
-    play("playing");
-    send_interaction_event(widget_id, selected_index ?? 0, promos);
+
+    play_audio("playing");
+    track_event(WidgetEventType.WIDGET_INTERACTION);
+
+    // Fetch result
+    await fetch_winning_index();
 
     gameLoopRef.current = setInterval(() => {
       setAltitude((prev) => {
@@ -527,49 +457,44 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
       });
     }, 50);
   }, [
-    is_interaction_disabled,
-    is_completed,
-    content_expired,
-    selected_index,
-    promos,
     targetAltitude,
     winMax,
+    play_audio,
+    track_event,
+    fetch_winning_index,
+    handleCrash,
   ]);
 
   const startGame = useCallback(() => {
-    if (is_interaction_disabled || is_completed || content_expired) return;
-    setShowRules(true);
-  }, [is_interaction_disabled, is_completed, content_expired]);
+    if (!is_rules_accepted) {
+      require_rules_consent?.();
+      return;
+    }
+    executeGame();
+  }, [is_rules_accepted, require_rules_consent, executeGame]);
 
   const handleEject = useCallback(() => {
     if (gameState !== "playing") return;
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
-    stop("playing");
+    stop_audio("playing");
 
     if (inWinZone) {
-      // ✅ Hit the target window
-      play("win");
+      play_audio("win");
       setGameState("ejected");
-      setShowConfetti(true);
-      setTimeout(() => set_is_winning_modal_open(true), 1500);
+      setTimeout(() => show_winning_popup(), 1500);
     } else {
-      // ❌ Ejected but outside the window
-      play("crash");
+      play_audio("lose");
       setGameState("missed");
-      setTimeout(() => set_is_losing_modal_open(true), 1200);
+      setTimeout(() => show_losing_popup(), 1200);
     }
-  }, [gameState, inWinZone]);
-
-  const handleCrash = useCallback(() => {
-    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
-    stop("playing");
-    play("crash");
-    setGameState("crashed");
-
-    setTimeout(() => {
-      set_is_losing_modal_open(true);
-    }, 1500);
-  }, []);
+  }, [
+    gameState,
+    inWinZone,
+    stop_audio,
+    play_audio,
+    show_winning_popup,
+    show_losing_popup,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -578,7 +503,8 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
   }, []);
 
   return (
-    <WidgetBaseContainer ref={element_ref} is_fullscreen={is_fullscreen}>
+    <>
+      {/* Game Specific Background covering the whole BaseContainer */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#000814] to-[#001d3d] overflow-hidden">
         {/* Background Grid / Stars */}
         <div
@@ -614,49 +540,13 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
         </AnimatePresence>
       </div>
 
-      <WidgetFullscreenToggle
-        is_fullscreen={is_fullscreen}
-        on_toggle={toggle_fullscreen}
-        theme_primary={theme_primary!}
-        is_mobile={is_mobile}
-        is_ios={is_ios}
-      />
-
-      {showConfetti && (
-        <WidgetConfetti
-          text={text4}
-          colors={[theme_primary!, theme_secondary!, theme_accent!]}
-          duration={5}
-          on_animation_end={() => setShowConfetti(false)}
-        />
-      )}
-
-      {is_completed && (
-        <WidgetSuccessOverlay
-          theme_primary={theme_primary!}
-          theme_secondary={theme_secondary!}
-          customer={lead_data}
-          message={text11 || ""}
-        />
-      )}
-
-      {(select_promo_error || is_rate_limited) && (
-        <WidgetErrorOverlay
-          error_type={is_rate_limited ? "RESERVED" : "GENERIC"}
-          original_url={original_url}
-          theme_primary={theme_primary!}
-          theme_secondary={theme_secondary!}
-          content_language={content_language}
-        />
-      )}
-
       <WidgetLayoutContent
         theme_primary={theme_primary!}
         theme_secondary={theme_secondary!}
         theme_accent={theme_accent}
         theme_line_height={theme_line_height}
-        content_expired={content_expired}
-        widget_visitor_index={visitor_index ?? 0}
+        content_expired={false}
+        widget_visitor_index={widget_visitor_index ?? 0}
       >
         <div className="relative w-full h-full flex flex-col items-center pt-8 px-6">
           <WidgetHeadings
@@ -668,10 +558,7 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
 
           <div className="flex-1 w-full relative flex items-center justify-center overflow-hidden">
             {/* Altitude Display */}
-            {(gameState === "playing" ||
-              gameState === "ejected" ||
-              gameState === "crashed" ||
-              gameState === "missed") && (
+            {gameState !== "idle" && (
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -725,8 +612,6 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                         : altitude > winMax
                           ? "#ef4444"
                           : theme_accent,
-                      boxShadow: inWinZone ? "0 0 12px #22c55e" : "none",
-                      transition: "background-color 0.2s",
                     }}
                   />
                   {/* Win zone bracket */}
@@ -739,24 +624,6 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                     }}
                   />
                 </div>
-
-                {/* Zone label */}
-                <p
-                  className="text-[8px] font-mono text-center"
-                  style={{
-                    color: inWinZone
-                      ? "#22c55e"
-                      : altitude > winMax
-                        ? "#ef4444"
-                        : "#ffffff33",
-                  }}
-                >
-                  {inWinZone
-                    ? "⚡ EJECT NOW — OPTIMAL ZONE"
-                    : altitude > winMax
-                      ? "OVERSHOT TARGET"
-                      : `APPROACH TARGET: ${winMin.toFixed(0)}–${winMax.toFixed(0)}`}
-                </p>
               </motion.div>
             )}
 
@@ -768,7 +635,6 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                         0,
                         -(altitude / targetAltitude) * 12,
                         (altitude / targetAltitude) * 6,
-                        -(altitude / targetAltitude) * 8,
                         0,
                       ],
                       rotate: [
@@ -789,17 +655,12 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
               }
               className="z-10 mt-16"
             >
-              {(gameState === "playing" ||
-                gameState === "idle" ||
-                gameState === "crashed" ||
-                gameState === "missed") && (
-                <RetroHelicopter
-                  color={theme_primary!}
-                  accent={theme_accent!}
-                  isCrashed={gameState === "crashed"}
-                  isPlaying={gameState === "playing"}
-                />
-              )}
+              <RetroHelicopter
+                color={theme_primary!}
+                accent={theme_accent!}
+                isCrashed={gameState === "crashed"}
+                isPlaying={gameState === "playing"}
+              />
             </motion.div>
 
             {/* Eject Animation */}
@@ -824,7 +685,7 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleEject}
-                  className="w-full py-6 rounded-3xl font-black text-2xl italic tracking-tighter text-white"
+                  className="w-full py-6 rounded-3xl font-black text-2xl italic text-white"
                   style={{
                     backgroundColor: inWinZone
                       ? "#16a34a"
@@ -833,270 +694,34 @@ const RetroAviatorCrash: FC<AviatorWidgetView> = ({
                         : theme_primary,
                     boxShadow: inWinZone
                       ? "0 0 30px #16a34a88"
-                      : altitude > winMax
-                        ? "0 0 30px #ef444488"
-                        : `0 0 20px ${theme_primary}44`,
-                    transition: "background-color 0.2s, box-shadow 0.2s",
+                      : `0 0 20px ${theme_primary}44`,
                   }}
                 >
-                  {inWinZone
-                    ? "⚡ EJECT NOW!"
-                    : altitude > winMax
-                      ? "🔥 OVERSHOT!"
-                      : "EJECT NOW!"}
+                  {inWinZone ? "⚡ EJECT NOW!" : "EJECT NOW!"}
                 </motion.button>
-              ) : gameState === "idle" && !is_completed ? (
-                <motion.div
+              ) : gameState === "idle" ? (
+                <motion.button
                   key="start"
-                  className="w-full"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  onClick={startGame}
+                  className="w-full py-6 rounded-3xl font-black text-2xl italic text-white shadow-xl"
+                  style={{
+                    backgroundColor: theme_primary,
+                    boxShadow: `0 0 40px ${theme_primary}66`,
+                    border: `2px solid ${theme_accent}`,
+                  }}
                 >
-                  <button
-                    onClick={startGame}
-                    disabled={select_promo_loading || is_interaction_disabled}
-                    className="w-full py-6 rounded-3xl font-black text-2xl italic tracking-tighter text-white shadow-xl transition-all active:scale-95 disabled:opacity-50"
-                    style={{
-                      backgroundColor: theme_primary,
-                      boxShadow: `0 0 40px ${theme_primary}66`,
-                      border: `2px solid ${theme_accent}`,
-                    }}
-                  >
-                    {select_promo_loading ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 1,
-                          ease: "linear",
-                        }}
-                        className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full mx-auto"
-                      />
-                    ) : (
-                      text3
-                    )}
-                  </button>
-                </motion.div>
+                  {text3}
+                </motion.button>
               ) : null}
             </AnimatePresence>
-
             <p className="text-[10px] font-bold tracking-[0.2em] opacity-40 uppercase text-center">
               {gameState === "playing" ? text16 : text5}
             </p>
           </div>
         </div>
       </WidgetLayoutContent>
-
-      {/* Rules Popup */}
-      <AnimatePresence>
-        {showRules && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[60] flex items-end justify-center bg-[#000814]/85 backdrop-blur-sm p-4"
-          >
-            <motion.div
-              initial={{ y: 120, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 120, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              className="w-full bg-[#000d1a] border-t-2 p-6 flex flex-col gap-5"
-              style={{
-                borderColor: theme_accent,
-                boxShadow: `0 -20px 60px ${theme_accent}22`,
-              }}
-            >
-              {/* Header */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-2 h-8"
-                  style={{ backgroundColor: theme_accent }}
-                />
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] opacity-40">
-                    CLASSIFIED
-                  </p>
-                  <h3
-                    className="text-xl font-black italic uppercase tracking-tighter"
-                    style={{ color: theme_accent }}
-                  >
-                    PRE-FLIGHT BRIEFING
-                  </h3>
-                </div>
-              </div>
-
-              {/* Rules */}
-              <div className="space-y-3">
-                {[
-                  {
-                    icon: "01",
-                    label: "ALTITUDE CLIMBS",
-                    desc: `Watch the counter rise toward the target: ${targetAltitude.toFixed(2)}`,
-                  },
-                  {
-                    icon: "02",
-                    label: `HIT THE ZONE`,
-                    desc: `Eject when the bar is GREEN (${winMin.toFixed(0)}\u2013${winMax.toFixed(0)}) to win`,
-                  },
-                  {
-                    icon: "03",
-                    label: "EJECT EARLY = FAIL",
-                    desc: `Leaving before ${winMin.toFixed(0)} means no reward`,
-                  },
-                  {
-                    icon: "04",
-                    label: "OVERSHOOT = CRASH",
-                    desc: `Pass ${winMax.toFixed(0)} and the flight is lost`,
-                  },
-                ].map((rule) => (
-                  <div key={rule.icon} className="flex items-start gap-3">
-                    <span
-                      className="text-[10px] font-black italic tabular-nums mt-0.5 shrink-0"
-                      style={{ color: theme_primary }}
-                    >
-                      {rule.icon}
-                    </span>
-                    <div>
-                      <p
-                        className="text-[10px] font-black uppercase tracking-widest"
-                        style={{ color: theme_accent }}
-                      >
-                        {rule.label}
-                      </p>
-                      <p className="text-[10px] font-mono text-white/40 leading-snug">
-                        {rule.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => setShowRules(false)}
-                  className="flex-1 py-3 text-xs font-bold uppercase tracking-widest text-white/40 border border-white/10 active:scale-95 transition-transform"
-                >
-                  ABORT
-                </button>
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => {
-                    setShowRules(false);
-                    executeGame();
-                  }}
-                  className="flex-[2] py-3 text-sm font-black italic uppercase tracking-tighter text-black"
-                  style={{ backgroundColor: theme_accent }}
-                >
-                  CONFIRM MISSION ▶
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Custom Win/Lose Popups */}
-      <AnimatePresence>
-        {(is_winning_modal_open || is_losing_modal_open) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[60] flex items-center justify-center bg-[#000814]/90 backdrop-blur-sm p-6"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-sm bg-black border-2 p-8 flex flex-col items-center"
-              style={{
-                borderColor: is_winning_modal_open
-                  ? theme_accent
-                  : theme_primary,
-                boxShadow: `0 0 40px ${is_winning_modal_open ? theme_accent : theme_primary}33`,
-              }}
-            >
-              <h2
-                className="text-3xl font-black italic uppercase tracking-tighter mb-2 text-center"
-                style={{
-                  color: is_winning_modal_open ? "#22c55e" : theme_primary,
-                }}
-              >
-                {is_winning_modal_open ? "OPTIMAL EJECT!" : "MISSION FAILED"}
-              </h2>
-              <p className="text-xs font-mono text-white/60 mb-8 text-center uppercase tracking-widest">
-                {is_winning_modal_open
-                  ? `EJECTED AT ${altitude.toFixed(2)} — TARGET: ${targetAltitude.toFixed(2)}`
-                  : altitude > winMax
-                    ? `OVERSHOT — EJECTED AT ${altitude.toFixed(2)}`
-                    : `EARLY EJECT AT ${altitude.toFixed(2)} — TOO SOON`}
-              </p>
-
-              {is_winning_modal_open ? (
-                <div className="w-full space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                      {text8}
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => set_email(e.target.value)}
-                      placeholder="ENTER EMAIL"
-                      className="w-full bg-white/5 border border-white/10 px-4 py-3 font-mono text-sm outline-none focus:border-white/30 transition-colors"
-                    />
-                  </div>
-
-                  <div className="flex items-start gap-2 pt-2">
-                    <input
-                      type="checkbox"
-                      checked={terms_accepted}
-                      onChange={(e) => set_terms_accepted(e.target.checked)}
-                      className="mt-1"
-                    />
-                    <p className="text-[10px] leading-tight text-white/40 uppercase">
-                      {terms_text}{" "}
-                      {terms_link && (
-                        <a
-                          href={terms_link}
-                          target="_blank"
-                          className="underline"
-                        >
-                          [READ]
-                        </a>
-                      )}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      handle_post_game_submit(email, terms_accepted)
-                    }
-                    className="w-full py-4 font-black italic uppercase tracking-tighter text-black mt-4 active:scale-95 transition-transform"
-                    style={{ backgroundColor: theme_accent }}
-                  >
-                    {text10}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    set_is_losing_modal_open(false);
-                    setGameState("idle");
-                  }}
-                  className="w-full py-4 font-black italic uppercase tracking-tighter text-white mt-4 border-2 active:scale-95 transition-transform"
-                  style={{ borderColor: theme_primary }}
-                >
-                  RETRY MISSION
-                </button>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </WidgetBaseContainer>
+    </>
   );
 };
 
-export default RetroAviatorCrash;
+export default RetroAviatorContent;

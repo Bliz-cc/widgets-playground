@@ -11,7 +11,7 @@
     "validate:widgets": "./scripts/validate-widgets.sh"
   },
   "dependencies": {
-    "@blizcc/ui": "^0.1.39",
+    "@blizcc/ui": "^0.1.49",
     "@tabler/icons-react": "^3.41.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
