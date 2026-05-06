@@ -188,107 +188,109 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   // RENDER
   // ===========================================================
   return (
-    <WidgetBaseContainer ref={element_ref} is_fullscreen={is_fullscreen}>
-      {/* Component is responsible for its own layout and background */}
-      <Component {...dynamicProps} />
+    <div className="flex items-center justify-center h-screen w-screen bg-transparent">
+      <WidgetBaseContainer ref={element_ref} is_fullscreen={is_fullscreen}>
+        {/* Component is responsible for its own layout and background */}
+        <Component {...dynamicProps} />
 
-      <WidgetFullscreenToggle
-        is_fullscreen={is_fullscreen}
-        on_toggle={toggle_fullscreen}
-        theme_primary={config.theme_primary!}
-        is_mobile={is_mobile}
-        is_ios={is_ios}
-      />
-
-      {show_confetti && selected_index !== null && (
-        <WidgetConfetti
-          text={config.promos[selected_index]?.title}
-          colors={[
-            config.theme_primary!,
-            config.theme_secondary!,
-            config.theme_accent!,
-          ]}
-          duration={3}
-          on_animation_end={() => {
-            set_show_confetti(false);
-            set_is_winning_modal_open(true);
-          }}
-        />
-      )}
-
-      {is_completed && (
-        <WidgetSuccessOverlay
+        <WidgetFullscreenToggle
+          is_fullscreen={is_fullscreen}
+          on_toggle={toggle_fullscreen}
           theme_primary={config.theme_primary!}
-          theme_secondary={config.theme_secondary!}
-          customer={lead_data}
-          message={config.text11 || ""}
+          is_mobile={is_mobile}
+          is_ios={is_ios}
         />
-      )}
 
-      {(select_promo_error || is_rate_limited) && (
-        <WidgetErrorOverlay
-          error_type={is_rate_limited ? "RESERVED" : "GENERIC"}
-          original_url={config.original_url}
-          theme_primary={config.theme_primary!}
-          theme_secondary={config.theme_secondary!}
-          content_language={config.content_language}
-        />
-      )}
+        {show_confetti && selected_index !== null && (
+          <WidgetConfetti
+            text={config.promos[selected_index]?.title}
+            colors={[
+              config.theme_primary!,
+              config.theme_secondary!,
+              config.theme_accent!,
+            ]}
+            duration={3}
+            on_animation_end={() => {
+              set_show_confetti(false);
+              set_is_winning_modal_open(true);
+            }}
+          />
+        )}
 
-      {is_losing_modal_open && (
-        <WidgetLosingOverlay
-          message={config.text7 || "Better luck next time!"}
-          theme_primary={config.theme_primary!}
-          theme_secondary={config.theme_secondary}
-          theme_accent={config.theme_accent}
+        {is_completed && (
+          <WidgetSuccessOverlay
+            theme_primary={config.theme_primary!}
+            theme_secondary={config.theme_secondary!}
+            customer={lead_data}
+            message={config.text11 || ""}
+          />
+        )}
+
+        {(select_promo_error || is_rate_limited) && (
+          <WidgetErrorOverlay
+            error_type={is_rate_limited ? "RESERVED" : "GENERIC"}
+            original_url={config.original_url}
+            theme_primary={config.theme_primary!}
+            theme_secondary={config.theme_secondary!}
+            content_language={config.content_language}
+          />
+        )}
+
+        {is_losing_modal_open && (
+          <WidgetLosingOverlay
+            message={config.text7 || "Better luck next time!"}
+            theme_primary={config.theme_primary!}
+            theme_secondary={config.theme_secondary}
+            theme_accent={config.theme_accent}
+            on_close={handle_close}
+          />
+        )}
+
+        <WidgetWinningModal
+          is_open={is_winning_modal_open}
           on_close={handle_close}
-        />
-      )}
-
-      <WidgetWinningModal
-        is_open={is_winning_modal_open}
-        on_close={handle_close}
-        promo={
-          selected_index !== null ? config.promos[selected_index] : undefined
-        }
-        theme_primary={config.theme_primary!}
-        theme_secondary={config.theme_secondary!}
-        theme_accent={config.theme_accent}
-        theme_line_height={config.theme_line_height}
-        content_language={config.content_language}
-        collection_method={config.collection_method}
-        modal_title={config.text4}
-        input_placeholder={config.text8}
-        submit_button_text={config.text10}
-        validation_error_text={config.text14}
-        terms_text={config.terms_text}
-        terms_link={config.terms_link}
-        on_submit={(data) =>
-          handle_post_game_submit(data.value, data.terms_accepted)
-        }
-        submit_loading={select_promo_loading}
-        round_id={selected_promo?.round_id}
-        on_round_id_copy={handle_claim_win_id}
-      />
-
-      {!config.content_expired && (
-        <WidgetRulesAcceptModal
-          is_open={is_rules_accept_modal_open}
-          on_accept={() => {
-            send_consent_game_start(config.widget_id);
-            handle_accept_rules();
-          }}
-          on_view_full_rules={handle_view_full_rules_from_accept}
-          widget_rules={(config as any).widget_rules}
-          engine_rules={(config as any).engine_rules}
+          promo={
+            selected_index !== null ? config.promos[selected_index] : undefined
+          }
           theme_primary={config.theme_primary!}
           theme_secondary={config.theme_secondary!}
           theme_accent={config.theme_accent}
           theme_line_height={config.theme_line_height}
           content_language={config.content_language}
+          collection_method={config.collection_method}
+          modal_title={config.text4}
+          input_placeholder={config.text8}
+          submit_button_text={config.text10}
+          validation_error_text={config.text14}
+          terms_text={config.terms_text}
+          terms_link={config.terms_link}
+          on_submit={(data) =>
+            handle_post_game_submit(data.value, data.terms_accepted)
+          }
+          submit_loading={select_promo_loading}
+          round_id={selected_promo?.round_id}
+          on_round_id_copy={handle_claim_win_id}
         />
-      )}
-    </WidgetBaseContainer>
+
+        {!config.content_expired && (
+          <WidgetRulesAcceptModal
+            is_open={is_rules_accept_modal_open}
+            on_accept={() => {
+              send_consent_game_start(config.widget_id);
+              handle_accept_rules();
+            }}
+            on_view_full_rules={handle_view_full_rules_from_accept}
+            widget_rules={(config as any).widget_rules}
+            engine_rules={(config as any).engine_rules}
+            theme_primary={config.theme_primary!}
+            theme_secondary={config.theme_secondary!}
+            theme_accent={config.theme_accent}
+            theme_line_height={config.theme_line_height}
+            content_language={config.content_language}
+          />
+        )}
+      </WidgetBaseContainer>
+    </div>
   );
 };
 
