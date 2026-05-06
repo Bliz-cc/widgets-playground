@@ -8,7 +8,6 @@ import {
   WidgetConfetti,
   WidgetSuccessOverlay,
   WidgetErrorOverlay,
-  WidgetUnifiedResultModal,
   WidgetRulesAcceptModal,
   useGetVisitorIndex,
   useFullscreen,
@@ -19,7 +18,6 @@ import {
   useAudio,
   useSubmitWidgetEvents,
   WidgetLosingOverlay,
-  WidgetEventType,
   WidgetWinningModal,
 } from "@blizcc/ui";
 import type { WidgetView, DynamicWidgetView } from "@blizcc/ui";
@@ -34,12 +32,7 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   // ===========================================================
   // STEP 1: VISITOR IDENTITY
   // ===========================================================
-  const {
-    visitor_index,
-    visitor_index_loading,
-    is_rate_limited,
-    is_interaction_disabled,
-  } = useGetVisitorIndex();
+  const { visitor_index, is_rate_limited } = useGetVisitorIndex();
 
   // ===========================================================
   // STEP 2: FULLSCREEN
