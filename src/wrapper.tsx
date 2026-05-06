@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { type FC, useState, useCallback, useMemo } from "react";
+import { type FC, useState, useCallback, useMemo, useEffect } from "react";
 import {
   WidgetBaseContainer,
   WidgetFullscreenToggle,
@@ -131,10 +131,33 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
   });
 
   // ===========================================================
+  // AUTOMATIC EVENT TRACKING
+  // ===========================================================
+
+  // 1. View Event: Tracked when visitor is identified
+  useEffect(() => {
+    if (visitor_index !== null) {
+      // In this system, consent_game_start is often used as the initial entry/view pulse
+      send_consent_game_start(config.widget_id);
+    }
+  }, [visitor_index]);
+
+  // 2. Interaction Event: Tracked when rules are accepted (Game Start)
+  useEffect(() => {
+    if (has_accepted_rules) {
+      send_interaction_event(
+        config.widget_id,
+        selected_index ?? 0,
+        config.promos,
+      );
+    }
+  }, [has_accepted_rules]);
+
+  // ===========================================================
   // STEP 9: DYNAMIC PROPS MAPPING
   // ===========================================================
 
-  const fetch_winning_index = useCallback(async () => {
+  const fetch_promo_idx = useCallback(async () => {
     if (selected_index !== null) return selected_index;
     const res = await select_promo({
       widget_id: config.widget_id,
@@ -147,8 +170,10 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     ...config,
     widget_visitor_index: visitor_index ?? 0,
     is_rules_accepted: has_accepted_rules,
-    require_rules_consent: () => set_is_rules_accept_modal_open(true),
-    fetch_winning_index,
+    show_rules_popup: () => {
+      set_is_rules_accept_modal_open(true);
+    },
+    fetch_promo_idx,
     show_winning_popup: () => {
       const is_winning =
         selected_index !== null && !config.promos[selected_index]?.is_default;
@@ -160,25 +185,6 @@ const DynamicWidgetWrapper: FC<WrapperProps> = (props) => {
     },
     show_losing_popup: () => {
       set_is_losing_modal_open(true);
-    },
-    track_event: (event, payload) => {
-      // console.log("event:", event);
-      // console.log("payload:", payload);
-      if (event === WidgetEventType.WIDGET_INTERACTION) {
-        send_interaction_event(
-          config.widget_id,
-          selected_index ?? 0,
-          config.promos,
-        );
-      } else if (event === WidgetEventType.WIDGET_CONSENT_GAME_START) {
-        send_consent_game_start(config.widget_id);
-      } else if (event === WidgetEventType.WIDGET_INTERACTION_FINISHED) {
-        send_interaction_finished_event(
-          config.widget_id,
-          selected_index ?? 0,
-          config.promos,
-        );
-      }
     },
     play_audio: (track) => play(track),
     stop_audio: (track) => stop(track),

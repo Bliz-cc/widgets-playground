@@ -16,7 +16,6 @@ import { motion, AnimatePresence } from "framer-motion";
 // =============================================================
 import {
   type DynamicWidgetView,
-  WidgetEventType,
   WidgetHeadings,
   WidgetLayoutContent,
 } from "@blizcc/ui";
@@ -371,14 +370,13 @@ export const RetroAviatorContent: FC<DynamicWidgetView> = (props) => {
     text18,
     widget_visitor_index,
     is_rules_accepted,
-    require_rules_consent,
-    fetch_winning_index,
     show_winning_popup,
     show_losing_popup,
-    track_event,
+    show_rules_popup,
     play_audio,
     stop_audio,
     preview_state_override,
+    fetch_promo_idx,
   } = props;
 
   // Game State
@@ -441,10 +439,9 @@ export const RetroAviatorContent: FC<DynamicWidgetView> = (props) => {
     speedRef.current = targetAltitude / durationTicks;
 
     play_audio("playing");
-    track_event(WidgetEventType.WIDGET_INTERACTION);
 
     // Fetch result
-    await fetch_winning_index();
+    await fetch_promo_idx();
 
     gameLoopRef.current = setInterval(() => {
       setAltitude((prev) => {
@@ -456,22 +453,15 @@ export const RetroAviatorContent: FC<DynamicWidgetView> = (props) => {
         return next;
       });
     }, 50);
-  }, [
-    targetAltitude,
-    winMax,
-    play_audio,
-    track_event,
-    fetch_winning_index,
-    handleCrash,
-  ]);
+  }, [targetAltitude, winMax, play_audio, fetch_promo_idx, handleCrash]);
 
   const startGame = useCallback(() => {
     if (!is_rules_accepted) {
-      require_rules_consent?.();
+      show_rules_popup();
       return;
     }
     executeGame();
-  }, [is_rules_accepted, require_rules_consent, executeGame]);
+  }, [is_rules_accepted, executeGame]);
 
   const handleEject = useCallback(() => {
     if (gameState !== "playing") return;
